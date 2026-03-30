@@ -1,0 +1,11 @@
+flask
+redis
+psycopg2-binary
+sqlalchemy
+pgvector
+requests
+langchain
+langchain-community
+langchain-text-splitters
+pypdf
+ollama

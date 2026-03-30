@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: agent_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d agent_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/db
+    depends_on:
+      - redis
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rag_loader:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python rag_loader.py
+    environment:
+      - POSTGRES_URL=postgresql://user:password@postgres:5432/agent_db
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    volumes:
+      - ./geladeira_images_extracted.json:/app/geladeira_images_extracted.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  flask_api:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python api.py
+    ports:
+      - "5005:5000"
+    environment:
+      - POSTGRES_URL=postgresql://user:password@postgres:5432/agent_db
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      rag_loader:
+        condition: service_completed_successfully
+
+  agent_worker:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python agent.py
+    environment:
+      - POSTGRES_URL=postgresql://user:password@postgres:5432/agent_db
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      rag_loader:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  redisinsight_data:

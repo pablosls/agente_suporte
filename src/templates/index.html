@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente Virtual - Geladeira RAG</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f8fafc;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 85vh;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        header {
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        #messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            scroll-behavior: smooth;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease-out;
+            word-wrap: break-word;
+        }
+        .message p { margin-bottom: 8px; }
+        .message p:last-child { margin-bottom: 0; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant {
+            align-self: flex-start;
+            background: #334155;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .thinking {
+            display: flex;
+            gap: 4px;
+            padding: 15px 20px;
+            align-items: center;
+            background: #334155;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            align-self: flex-start;
+            opacity: 0.7;
+        }
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #94a3b8;
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        #input-area {
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            flex: 1;
+            padding: 15px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input:focus { border-color: #3b82f6; }
+        button {
+            padding: 0 25px;
+            border-radius: 30px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        button:active { transform: translateY(1px); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="chat-container">
+        <header>
+            <div class="status-dot"></div>
+            Assistente Especialista em Geladeira
+        </header>
+        
+        <div id="messages">
+            <div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>
+        </div>
+
+        <div class="thinking hidden" id="typing-indicator">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+        
+        <div id="input-area">
+            <input type="text" id="userInput" placeholder="Insira a sua dúvida aqui..." autocomplete="off">
+            <button id="sendBtn">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+        let isPolling = false;
+        let messageCount = 1; // 1 initial message
+        const messagesDiv = document.getElementById('messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        sessionId = generateUUID();
+
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function createMessageElement(text, sender) {
+            const el = document.createElement('div');
+            el.className = `message ${sender}`;
+            el.innerText = text;
+            messagesDiv.appendChild(el);
+            scrollToBottom();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if(!text) return;
+            
+            input.value = '';
+            
+            // we locally append to not wait for API roundtrip on load.
+            // but the api.py will store the user msg inside memory directly.
+            
+            typingIndicator.classList.remove('hidden');
+            scrollToBottom();
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ mensagem: text, session_id: sessionId })
+                });
+                if(res.ok && !isPolling) {
+                    isPolling = true;
+                    pollMessages();
+                }
+            } catch (err) {
+                console.error(err);
+                typingIndicator.classList.add('hidden');
+            }
+        }
+
+        async function pollMessages() {
+            try {
+                const res = await fetch(`/getMessages?session_id=${sessionId}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    if(data.length > messageCount) {
+                        // we just append new messages to make it simple instead of rebuilding dom fully.
+                        // wait, actually we can just overwrite the whole div to be safe 
+                        messagesDiv.innerHTML = '<div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>';
+                        data.forEach(m => {
+                            const el = document.createElement('div');
+                            el.className = `message ${m.sender}`;
+                            el.innerText = m.text;
+                            messagesDiv.appendChild(el);
+                        });
+                        messageCount = data.length;
+                        // hide typing if the last message is from assistant
+                        if(data[data.length-1].sender === 'assistant') {
+                            typingIndicator.classList.add('hidden');
+                        } else {
+                            typingIndicator.classList.remove('hidden');
+                        }
+                        scrollToBottom();
+                    }
+                }
+            } catch(e) { console.error("Poll Error: ", e); }
+
+            setTimeout(pollMessages, 3000); // Poll a cada 3 s
+        }
+
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
