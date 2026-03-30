@@ -1,38 +1,47 @@
 # 🧊 Assistente Especialista em Geladeiras (RAG)
 
-Este projeto implementa um agente conversacional inteligente capaz de responder dúvidas técnicas sobre o manual de geladeiras (especificamente modelos Panasonic). Utiliza uma arquitetura RAG (Retrieval-Augmented Generation) robusta com processamento assíncrono e ingestão de dados via OCR de alta fidelidade.
+Este projeto implementa um agente conversacional inteligente para suporte técnico de geladeiras Panasonic, utilizando uma arquitetura de microserviços assíncronos e processamento RAG de alta fidelidade.
 
 ## 🏗️ Arquitetura do Sistema
 
-O projeto é baseado em microserviços orquestrados via Docker Compose, garantindo escalabilidade e isolamento de componentes.
+Abaixo, o diagrama técnico que descreve o fluxo de dados desde a ingestão do manual até a resposta ao usuário final (baseado em [arquitetura.png](file:///Users/pablosls/Desktop/testes/antigravity/arquitura_agente/arquitetura.png)):
 
 ```mermaid
 graph TD
-    User((Usuário)) --> WebUI[Interface Web - Flask]
-    WebUI --> Redis[(Redis Queue)]
-    Redis --> Worker[Agent Worker - Python]
-    Worker --> PG[(Postgres + PGVector)]
-    Worker --> Ollama[Ollama - Host Local]
-    Loader[RAG Loader] --> PG
-    Loader --> Ollama
-    Docling[Docling OCR] --> Loader
+    subgraph "Ingestão RAG (ETL)"
+        Loader[Service Load RAG Documents] --> Read[Ler Arquivo Manual PDF]
+        Read --> Chunks[Gerar Chunks]
+        Chunks --> Embed[Gerar Embeddings - Ollama nomic-embed-text]
+        Embed --> VDB[(Postgres PGVector - RAG Database)]
+    end
+
+    subgraph "Fluxo do Usuário"
+        User((Usuário Front End)) --> API[API Flask Backend]
+        API -- "/chat" --> Queue[(Redis Queue)]
+        Queue --> Agent[Agent Assistente]
+        Agent -- "Obtem documentos" --> VDB
+        Agent -- "Consulta LLM - gemma3:4b" --> Ollama[Ollama LLM]
+        Agent -- "Salva Resposta" --> Mem[Memory Service]
+        Mem -- "Persiste Resultado" --> PDB[(Postgres - Tabela Resultados)]
+        Mem --> Cache[(Redis Cache)]
+        API -- "/getMessages (Polling)" --> Mem
+    end
 ```
 
-### Componentes Principais:
-- **Flask API**: Interface de chat e endpoint de mensagens.
-- **Redis**: Fila de mensagens para processamento assíncrono das respostas.
-- **Agent Worker**: Core do assistente que recupera contexto e gera respostas usando LLM.
-- **PostgreSQL + PGVector**: Armazenamento vetorial para busca semântica e histórico.
-- **Ollama**: Servidor de modelos local (Nomic Embeddings + Gemma:2b).
-- **Docling OCR**: Pipeline de extração de texto a partir de imagens do manual para garantir 100% de fidelidade.
+### Componentes de Arquitetura:
+- **API Flask Backend**: Ponto de entrada que gerencia as requisições `/chat` e o polling `/getMessages`.
+- **Redis Queue**: Fila de mensagens para garantir que o processamento do LLM não bloqueie a interface.
+- **Agent Assistente**: O núcleo de inteligência que orquestra a recuperação vetorial e a geração de resposta.
+- **Memory Service**: Módulo responsável pela gestão de estado, salvando o histórico no **Postgres** (permanente) e no **Redis** (cache de alta performance).
+- **Service Load RAG Documents**: Pipeline de pré-processamento que transforma o manual bruto em conhecimento vetorial.
 
 ## 🚀 Tecnologias Utilizadas
 
 - **Linguagem**: Python 3.10
 - **Framework Web**: Flask
 - **Banco de Dados**: PostgreSQL com extensão `pgvector`
-- **Mensageria**: Redis
-- **IA/LLM**: Ollama (gemma:2b, nomic-embed-text)
+- **Mensageria e Cache**: Redis
+- **IA/LLM**: Ollama (gemma3:4b, nomic-embed-text)
 - **OCR**: Docling (IBM)
 - **Orquestração**: Docker Compose
 
@@ -47,66 +56,50 @@ graph TD
 ### Passos para Rodar (Passo a Passo)
 
 1. **Configurar o Ambiente Virtual Python**:
-   Recomendamos criar um ambiente isolado (virtual environment) em sua máquina local para instalar as dependências de Extração de Imagens (Docling) tranquilamente:
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    ```
 
 2. **Instalar Dependências**:
-   Instale todas as bibliotecas requeridas na raiz do projeto (inclui Docling, Flask, Langchain, etc):
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Extração Base via OCR (Opcional)**:
-   Se houver um novo manual ou imagens PDF em `/ilovepdf_pages-to-jpg`, gere um novo extrato rodando o script isolado do `docling` fora do Docker (suporta aceleração num ambiente local):
+   Se houver um novo manual, gere um novo extrato rodando o script:
    ```bash
    python extract_docling_images.py
    ```
-   Isso fará o overwrite do `geladeira_images_extracted.json`.
 
-4. **Subir a Infraestrutura RAG**:
-   Com o JSON pronto, instancie os workers (Redis, Postgres, Flask, Agent) diretamente pelo docker compose. Este comando empacota sua arquitetura em background de forma veloz:
+4. **Subir a Infraestrutura**:
    ```bash
    docker compose up --build -d
    ```
 
-5. **Ingestão de Vetores (Automática)**:
-   Sempre que os containers subirem, o serviço temporário `rag_loader` será o primeiro a ser acionado. Ele vai:
-   - Limpar o banco de vetores histórico.
-   - Ler o `geladeira_images_extracted.json`.
-   - Calcular 35 embeddings chamando seu Ollama local.
-   - Guardar permanentemente os dados limpos no PGVector PostgreSQL.
-
-6. **Acessar as Aplicações**:
+5. **Acessar as Aplicações**:
    - **Frontend do Agente (Chat)**: [http://localhost:5005](http://localhost:5005)
-   - **Interface do Fio de Eventos (RedisInsight)**: [http://localhost:5540](http://localhost:5540)
-   - **Interface do Banco de Dados (pgAdmin 4)**: [http://localhost:8081](http://localhost:8081)
+   - **Gerenciamento de Fila (RedisInsight)**: [http://localhost:5540](http://localhost:5540)
+   - **Gerenciamento de Banco (pgAdmin 4)**: [http://localhost:8081](http://localhost:8081)
      - **Login**: `admin@admin.com` / **Senha**: `admin`
-     - **Conexão com Postgres**:
-       - *Host*: `postgres`
-       - *Database*: `agent_db`
-       - *Username*: `user`
-       - *Password*: `password`
+     - **Configuração Servidor**: Host: `postgres` | User: `user` | Pass: `password` | DB: `agent_db`
 
-## 🧪 Validação e Testes
+## ⚡ Cache e Performance
 
-O projeto conta com um script de validação rigoroso (`rag_validation.py`) que testa a precisão do assistente com 10 perguntas do manual:
-- **Pergunta**: *"Quantos bips o alarme soa após a porta ficar aberta por três minutos?"*
-- **Resposta Esperada**: 4 bips.
-- **Status local**: ✅ Validado com sucesso.
+O sistema utiliza uma estratégia de **Cache Híbrido**:
+- Quando o worker gera uma resposta, ela é salva no **Postgres** (durabilidade) e no **Redis** (velocidade).
+- Consultas sucessivas ao histórico de chat (`/getMessages`) são servidas diretamente pelo Redis (**Cache HIT**), eliminando a latência do banco de dados e do processamento de modelos.
 
-Os resultados das últimas baterias de testes podem ser encontrados nos arquivos:
-- `rag_evaluation_imgs.md`
-- `final_chat_response_1774818433808.png` (Screenshot do Teste)
+## 🧪 Validação de Precisão
 
-## 📁 Estrutura de Arquivos
+O agente carrega **regras estritas no System Prompt** para evitar alucinações:
+1. Responde **apenas** com base no contexto fornecido (RAG).
+2. Se a informação não estiver no manual, responde: *"Não encontrei a informação solicitada no manual."*
 
-- `src/api.py`: Servidor Flask.
-- `src/agent.py`: Worker assíncrono do assistente.
-- `src/rag_loader.py`: Script de ETL e Ingestão de vetores.
-- `extract_docling_images.py`: Script de OCR para processamento do manual original.
+---
+> [!IMPORTANT]
+> **Aceleração Local**: O worker utiliza `host.docker.internal` para acessar o Ollama no Mac host, permitindo o uso total de GPU/Metal para inferências rápidas.
+ original.
 - `docker-compose.yml`: Orquestração completa dos serviços.
 
 ---
