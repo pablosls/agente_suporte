@@ -110,6 +110,3 @@ Os resultados das últimas baterias de testes podem ser encontrados nos arquivos
 - `docker-compose.yml`: Orquestração completa dos serviços.
 
 ---
-> [!IMPORTANT]
-> **Nota sobre Performance**: O worker está configurado para usar o Ollama nativo via `host.docker.internal` para aproveitar a aceleração de hardware (GPU/Metal) do seu Mac, garantindo respostas em tempo real.
-# agente_suporte
