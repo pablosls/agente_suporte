@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
             padding: 0;
             font-family: 'Inter', sans-serif;
         }
+
         body {
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
             color: #f8fafc;
@@ -20,6 +22,7 @@
             justify-content: center;
             align-items: center;
         }
+
         #chat-container {
             width: 100%;
             max-width: 600px;
@@ -33,6 +36,7 @@
             overflow: hidden;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
+
         header {
             padding: 20px;
             background: rgba(15, 23, 42, 0.8);
@@ -45,6 +49,7 @@
             align-items: center;
             gap: 10px;
         }
+
         .status-dot {
             width: 10px;
             height: 10px;
@@ -53,11 +58,24 @@
             box-shadow: 0 0 10px #10b981;
             animation: pulse 2s infinite;
         }
+
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
         }
+
         #messages {
             flex: 1;
             padding: 20px;
@@ -67,6 +85,7 @@
             gap: 15px;
             scroll-behavior: smooth;
         }
+
         .message {
             max-width: 80%;
             padding: 12px 18px;
@@ -76,23 +95,50 @@
             animation: fadeIn 0.3s ease-out;
             word-wrap: break-word;
         }
-        .message p { margin-bottom: 8px; }
-        .message p:last-child { margin-bottom: 0; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .message p {
+            margin-bottom: 8px;
         }
+
+        .message p:last-child {
+            margin-bottom: 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .message.user {
             align-self: flex-end;
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             border-bottom-right-radius: 4px;
         }
+
         .message.assistant {
             align-self: flex-start;
             background: #334155;
             border-bottom-left-radius: 4px;
             border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
         }
+
+        .timing-info {
+            display: block;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-top: 6px;
+            text-align: right;
+            font-style: italic;
+        }
+
         .thinking {
             display: flex;
             gap: 4px;
@@ -104,6 +150,7 @@
             align-self: flex-start;
             opacity: 0.7;
         }
+
         .dot {
             width: 6px;
             height: 6px;
@@ -111,12 +158,28 @@
             background: #94a3b8;
             animation: typing 1.4s infinite ease-in-out both;
         }
-        .dot:nth-child(1) { animation-delay: -0.32s; }
-        .dot:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes typing {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+
+        .dot:nth-child(1) {
+            animation-delay: -0.32s;
         }
+
+        .dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+
         #input-area {
             padding: 20px;
             background: rgba(15, 23, 42, 0.8);
@@ -124,6 +187,7 @@
             display: flex;
             gap: 10px;
         }
+
         input {
             flex: 1;
             padding: 15px 20px;
@@ -135,7 +199,11 @@
             outline: none;
             transition: border-color 0.3s;
         }
-        input:focus { border-color: #3b82f6; }
+
+        input:focus {
+            border-color: #3b82f6;
+        }
+
         button {
             padding: 0 25px;
             border-radius: 30px;
@@ -146,14 +214,22 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         button:hover {
             background: #2563eb;
             transform: translateY(-1px);
         }
-        button:active { transform: translateY(1px); }
-        .hidden { display: none !important; }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
     <div id="chat-container">
@@ -161,9 +237,10 @@
             <div class="status-dot"></div>
             Assistente Especialista em Geladeira
         </header>
-        
+
         <div id="messages">
-            <div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>
+            <div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira
+                hoje?</div>
         </div>
 
         <div class="thinking hidden" id="typing-indicator">
@@ -171,7 +248,7 @@
             <div class="dot"></div>
             <div class="dot"></div>
         </div>
-        
+
         <div id="input-area">
             <input type="text" id="userInput" placeholder="Insira a sua dúvida aqui..." autocomplete="off">
             <button id="sendBtn">Enviar</button>
@@ -181,12 +258,12 @@
     <script>
         let sessionId = null;
         let isPolling = false;
-        let messageCount = 1; // 1 initial message
+        let serverMessageCount = 0; // Number of messages we know from the server
         const messagesDiv = document.getElementById('messages');
         const typingIndicator = document.getElementById('typing-indicator');
 
         function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
                 const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
@@ -197,10 +274,39 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        function createMessageElement(text, sender) {
+        function createMessageElement(text, sender, responseTime = null, ragIds = null, ragScores = null, tokenCount = null) {
             const el = document.createElement('div');
             el.className = `message ${sender}`;
-            el.innerText = text;
+            
+            const textSpan = document.createElement('span');
+            textSpan.innerText = text;
+            el.appendChild(textSpan);
+
+            if (sender === 'assistant') {
+                const footerEl = document.createElement('div');
+                footerEl.className = 'timing-info';
+                
+                let footerText = '';
+                if (responseTime) footerText += `⚡ ${responseTime}s`;
+                if (tokenCount) footerText += (footerText ? ' | ' : '') + `🪙 ${tokenCount} tokens`;
+                
+                if (ragIds) {
+                    const ids = ragIds.split(', ');
+                    const scores = ragScores ? ragScores.split(', ') : [];
+                    const docsInfo = ids.map((id, index) => {
+                        const score = scores[index] ? ` (${scores[index]})` : '';
+                        return id.split('/').pop() + score; // Show only filename for cleaner UI
+                    }).join(', ');
+                    
+                    footerText += (footerText ? ' | ' : '') + `Sources: ${docsInfo}`;
+                }
+                
+                if (footerText) {
+                    footerEl.innerText = footerText;
+                    el.appendChild(footerEl);
+                }
+            }
+
             messagesDiv.appendChild(el);
             scrollToBottom();
         }
@@ -208,23 +314,24 @@
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const text = input.value.trim();
-            if(!text) return;
-            
+            if (!text) return;
+
             input.value = '';
-            
-            // we locally append to not wait for API roundtrip on load.
-            // but the api.py will store the user msg inside memory directly.
-            
+
+            // Append message locally for immediate feedback
+            createMessageElement(text, 'user');
+            // We don't increment serverMessageCount here because this is a local append
+
             typingIndicator.classList.remove('hidden');
             scrollToBottom();
 
             try {
                 const res = await fetch('/chat', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mensagem: text, session_id: sessionId })
                 });
-                if(res.ok && !isPolling) {
+                if (res.ok && !isPolling) {
                     isPolling = true;
                     pollMessages();
                 }
@@ -237,21 +344,18 @@
         async function pollMessages() {
             try {
                 const res = await fetch(`/getMessages?session_id=${sessionId}`);
-                if(res.ok) {
+                if (res.ok) {
                     const data = await res.json();
-                    if(data.length > messageCount) {
+                    if (data.length > serverMessageCount) {
                         // we just append new messages to make it simple instead of rebuilding dom fully.
                         // wait, actually we can just overwrite the whole div to be safe 
                         messagesDiv.innerHTML = '<div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>';
                         data.forEach(m => {
-                            const el = document.createElement('div');
-                            el.className = `message ${m.sender}`;
-                            el.innerText = m.text;
-                            messagesDiv.appendChild(el);
+                            createMessageElement(m.text, m.sender, m.response_time, m.rag_ids, m.rag_scores, m.token_count);
                         });
-                        messageCount = data.length;
+                        serverMessageCount = data.length;
                         // hide typing if the last message is from assistant
-                        if(data[data.length-1].sender === 'assistant') {
+                        if (data[data.length - 1].sender === 'assistant') {
                             typingIndicator.classList.add('hidden');
                         } else {
                             typingIndicator.classList.remove('hidden');
@@ -259,15 +363,19 @@
                         scrollToBottom();
                     }
                 }
-            } catch(e) { console.error("Poll Error: ", e); }
+            } catch (e) { console.error("Poll Error: ", e); }
 
             setTimeout(pollMessages, 3000); // Poll a cada 3 s
         }
 
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
         });
     </script>
 </body>
+
 </html>

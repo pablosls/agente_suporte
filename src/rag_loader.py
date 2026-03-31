@@ -80,7 +80,8 @@ def load_json_and_embed():
             
         emb = generate_embedding(text)
         if emb:
-            doc = DocumentChunk(text=text, embedding=emb)
+            source = item.get("source_image", "Unknown")
+            doc = DocumentChunk(text=text, embedding=emb, source=source)
             db.add(doc)
             chunks_inseridos += 1
             if chunks_inseridos % 5 == 0:

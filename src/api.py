@@ -31,6 +31,12 @@ def chat():
     db.refresh(user_msg)
     db.close()
 
+    # Invalidate cache for session
+    try:
+        r.delete(f"chat_cache:{session_id}")
+    except Exception as e:
+        print(f"Error invalidating cache: {e}")
+
     # Enqueue work for the agent
     job_payload = {
         "session_id": session_id,

@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey, Float
 from sqlalchemy.orm import declarative_base, sessionmaker
 from pgvector.sqlalchemy import Vector
 from datetime import datetime
@@ -29,6 +29,10 @@ class ChatMessage(Base):
     user_id = Column(String, index=True)
     sender = Column(String) # 'user' or 'assistant'
     text = Column(Text)
+    response_time = Column(Float, nullable=True)
+    rag_ids = Column(String, nullable=True)
+    rag_scores = Column(String, nullable=True)
+    token_count = Column(Integer, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
 def init_db():
