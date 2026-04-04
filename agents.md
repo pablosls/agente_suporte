@@ -15,11 +15,11 @@ O **Agent Assistente** é o coração do sistema. Ele opera como um worker assí
     3. **Recuperação Vetorial (RAG)**:
         - Gera o embedding da pergunta usando `nomic-embed-text`.
         - Realiza busca por similaridade de L2 Distance na tabela `document_chunks`.
-    4. **Inferência**: Envia o prompt blindado (System Prompt) para o `Ollama` com o modelo `gemma4:e2b-it-q4_K_M`.
+    4. **Inferência**: Envia o prompt blindado (System Prompt) para o `Ollama` com o modelo `gemma3:1b`.
     5. **Persistência**: Envia a resposta para o **Memory Service**.
 
 - **Ferramentas**:
-    - `Ollama API (gemma4:e2b-it-q4_K_M)`
+    - `Ollama API (gemma3:1b)`
     - `SQLAlchemy + PGVector`
     - `Redis (LPUSH/BRPOP)`
 

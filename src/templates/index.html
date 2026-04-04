@@ -314,7 +314,7 @@
         function createMessageElement(text, sender, responseTime = null, ragIds = null, ragScores = null, tokenCount = null) {
             const el = document.createElement('div');
             el.className = `message ${sender}`;
-            
+
             const textSpan = document.createElement('span');
             textSpan.innerText = text;
             el.appendChild(textSpan);
@@ -322,11 +322,11 @@
             if (sender === 'assistant') {
                 const footerEl = document.createElement('div');
                 footerEl.className = 'timing-info';
-                
+
                 let footerText = '';
                 if (responseTime) footerText += `⚡ ${responseTime}s`;
                 if (tokenCount) footerText += (footerText ? ' | ' : '') + `🪙 ${tokenCount} tokens`;
-                
+
                 if (ragIds) {
                     const ids = ragIds.split(', ');
                     const scores = ragScores ? ragScores.split(', ') : [];
@@ -334,10 +334,10 @@
                         const score = scores[index] ? ` (${scores[index]})` : '';
                         return id.split('/').pop() + score;
                     }).join(', ');
-                    
+
                     footerText += (footerText ? ' | ' : '') + `Sources: ${docsInfo}`;
                 }
-                
+
                 if (footerText) {
                     footerEl.innerText = footerText;
                     el.appendChild(footerEl);
@@ -384,7 +384,7 @@
                         data.forEach(m => {
                             createMessageElement(m.text, m.sender, m.response_time, m.rag_ids, m.rag_scores, m.token_count);
                         });
-                        
+
                         // hide typing if the last message is from assistant
                         if (data[data.length - 1].sender === 'assistant') {
                             typingIndicator.classList.add('hidden');
@@ -394,8 +394,8 @@
                         scrollToBottom();
                     }
                 }
-            } catch (e) { 
-                console.error("Fetch Error: ", e); 
+            } catch (e) {
+                console.error("Fetch Error: ", e);
             }
         }
 
@@ -404,11 +404,11 @@
                 localStorage.removeItem('refrigerator_session_id');
                 sessionId = generateUUID();
                 localStorage.setItem('refrigerator_session_id', sessionId);
-                
+
                 // Clear UI
                 messagesDiv.innerHTML = '<div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>';
                 typingIndicator.classList.add('hidden');
-                
+
                 // Join new room
                 socket.emit('join', { session_id: sessionId });
                 console.log("Chat cleared. New session started:", sessionId);

@@ -20,7 +20,7 @@ graph TD
         API -- "/chat" --> Queue[(Redis Queue)]
         Queue --> Agent[Agent Assistente]
         Agent -- "Obtem documentos" --> VDB
-        Agent -- "Consulta LLM - gemma4:e2b-it-q4_K_M" --> Ollama[Ollama LLM]
+        Agent -- "Consulta LLM - gemma3:1b" --> Ollama[Ollama LLM]
         Agent -- "Salva Resposta" --> Mem[Memory Service]
         Mem -- "Persiste Resultado" --> PDB[(Postgres - Tabela Resultados)]
         Mem --> Cache[(Redis Cache)]
@@ -41,7 +41,7 @@ graph TD
 - **Framework Web**: Flask
 - **Banco de Dados**: PostgreSQL com extensão `pgvector`
 - **Mensageria e Cache**: Redis
-- **IA/LLM**: Ollama (gemma4:e2b-it-q4_K_M, nomic-embed-text)
+- **IA/LLM**: Ollama (gemma3:1b, nomic-embed-text)
 - **OCR**: Docling (IBM)
 - **Orquestração**: Docker Compose
 

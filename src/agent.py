@@ -116,7 +116,7 @@ def ask_ollama(history, context, question):
         f"HISTÓRICO RECENTE:\n{history}"
     )
     
-    model_to_use = "gemma4:e2b-it-q4_K_M" 
+    model_to_use = "gemma3:1b" 
     try:
         # Logging completo do prompt para o worker
         print("\n" + "="*50)
