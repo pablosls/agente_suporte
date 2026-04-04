@@ -116,7 +116,7 @@ def ask_ollama(history, context, question):
         f"HISTÓRICO RECENTE:\n{history}"
     )
     
-    model_to_use = "gemma3:4b" 
+    model_to_use = "gemma4:e2b-it-q4_K_M" 
     try:
         # Logging completo do prompt para o worker
         print("\n" + "="*50)
@@ -189,6 +189,9 @@ def process_queue():
                     
                     # Atualiza o Cache no Redis para o endpoint da API ler rápido
                     save_chat_cache(session_id, db)
+                    
+                    # Notifica a API via WebSocket (através do Redis Pub/Sub)
+                    r.publish('chat_updates', session_id)
                 except Exception as e:
                     print(f"Agent logic error: {e}")
                     db.rollback()

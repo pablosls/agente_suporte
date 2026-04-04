@@ -24,7 +24,7 @@ def wait_for_ollama():
         time.sleep(2)
 
 def pull_models():
-    # Use gemma2:2b as a reliable fallback if gemma3:4b is not in the registry yet, but we request the exact spec name.
+    # Use gemma2:2b as a reliable fallback if gemma4:e2b-it-q4_K_M is not in the registry yet, but we request the exact spec name.
     models = ["nomic-embed-text"] 
     for model in models:
         print(f"Pulling model {model} (this may take a few minutes)...")

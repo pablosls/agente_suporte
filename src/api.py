@@ -1,14 +1,36 @@
+import eventlet
+eventlet.monkey_patch()
 import os
 import json
 import redis
-import uuid
+import threading
 from flask import Flask, request, jsonify, render_template
+from flask_socketio import SocketIO, emit, join_room
 from models import SessionLocal, ChatMessage
 
 app = Flask(__name__)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 r = redis.from_url(REDIS_URL)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
+# Background thread to listen to Redis Pub/Sub and notify via SocketIO
+def redis_subscriber():
+    pubsub = r.pubsub()
+    pubsub.subscribe('chat_updates')
+    print("Redis Subscriber Thread Started. Listening for 'chat_updates'...")
+    for message in pubsub.listen():
+        if message['type'] == 'message':
+            session_id = message['data'].decode('utf-8')
+            print(f"WebSocket Notify: Emiting new_message to room {session_id}")
+            socketio.emit('new_message', {"session_id": session_id}, room=session_id)
+
+@socketio.on('join')
+def handle_join(data):
+    session_id = data.get('session_id')
+    if session_id:
+        join_room(session_id)
+        print(f"User joined room: {session_id}")
 
 @app.route('/')
 def index():
@@ -83,4 +105,6 @@ def get_messages():
     return jsonify(results)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Start the Redis subscriber thread
+    threading.Thread(target=redis_subscriber, daemon=True).start()
+    socketio.run(app, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)

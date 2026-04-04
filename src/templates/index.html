@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assistente Virtual - Geladeira RAG</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -56,10 +57,30 @@
             background-color: #10b981;
             border-radius: 50%;
             box-shadow: 0 0 10px #10b981;
-            animation: pulse 2s infinite;
+            animation: pulse-green 2s infinite;
         }
 
-        @keyframes pulse {
+        .clear-btn {
+            position: absolute;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .clear-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        @keyframes pulse-green {
             0% {
                 transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
@@ -233,9 +254,10 @@
 <body>
 
     <div id="chat-container">
-        <header>
+        <header style="position: relative;">
             <div class="status-dot"></div>
-            Assistente Especialista em Geladeira
+            Assistente Técnico RAG
+            <button class="clear-btn" id="clearBtn">Novo Chat</button>
         </header>
 
         <div id="messages">
@@ -256,11 +278,10 @@
     </div>
 
     <script>
-        let sessionId = null;
-        let isPolling = false;
-        let serverMessageCount = 0; // Number of messages we know from the server
+        let sessionId = localStorage.getItem('refrigerator_session_id') || null;
         const messagesDiv = document.getElementById('messages');
         const typingIndicator = document.getElementById('typing-indicator');
+        const socket = io({ transports: ["websocket", "polling"] });
 
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -268,7 +289,23 @@
                 return v.toString(16);
             });
         }
-        sessionId = generateUUID();
+
+        if (!sessionId) {
+            sessionId = generateUUID();
+            localStorage.setItem('refrigerator_session_id', sessionId);
+        }
+
+        // Join room for this session
+        socket.emit('join', { session_id: sessionId });
+        fetchMessages();
+
+        // Listen for real-time updates
+        socket.on('new_message', (data) => {
+            console.log("WebSocket: New message notification received for session", data.session_id);
+            if (data.session_id === sessionId) {
+                fetchMessages();
+            }
+        });
 
         function scrollToBottom() {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -295,7 +332,7 @@
                     const scores = ragScores ? ragScores.split(', ') : [];
                     const docsInfo = ids.map((id, index) => {
                         const score = scores[index] ? ` (${scores[index]})` : '';
-                        return id.split('/').pop() + score; // Show only filename for cleaner UI
+                        return id.split('/').pop() + score;
                     }).join(', ');
                     
                     footerText += (footerText ? ' | ' : '') + `Sources: ${docsInfo}`;
@@ -320,40 +357,34 @@
 
             // Append message locally for immediate feedback
             createMessageElement(text, 'user');
-            // We don't increment serverMessageCount here because this is a local append
 
             typingIndicator.classList.remove('hidden');
             scrollToBottom();
 
             try {
-                const res = await fetch('/chat', {
+                await fetch('/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mensagem: text, session_id: sessionId })
                 });
-                if (res.ok && !isPolling) {
-                    isPolling = true;
-                    pollMessages();
-                }
             } catch (err) {
-                console.error(err);
+                console.error("Send Error:", err);
                 typingIndicator.classList.add('hidden');
             }
         }
 
-        async function pollMessages() {
+        async function fetchMessages() {
             try {
                 const res = await fetch(`/getMessages?session_id=${sessionId}`);
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.length > serverMessageCount) {
-                        // we just append new messages to make it simple instead of rebuilding dom fully.
-                        // wait, actually we can just overwrite the whole div to be safe 
+                    if (data.length > 0) {
+                        // Rebuild chat history
                         messagesDiv.innerHTML = '<div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>';
                         data.forEach(m => {
                             createMessageElement(m.text, m.sender, m.response_time, m.rag_ids, m.rag_scores, m.token_count);
                         });
-                        serverMessageCount = data.length;
+                        
                         // hide typing if the last message is from assistant
                         if (data[data.length - 1].sender === 'assistant') {
                             typingIndicator.classList.add('hidden');
@@ -363,11 +394,28 @@
                         scrollToBottom();
                     }
                 }
-            } catch (e) { console.error("Poll Error: ", e); }
-
-            setTimeout(pollMessages, 3000); // Poll a cada 3 s
+            } catch (e) { 
+                console.error("Fetch Error: ", e); 
+            }
         }
 
+        function clearChat() {
+            if (confirm("Tem certeza que deseja iniciar um novo chat? O histórico atual será perdido nesta tela.")) {
+                localStorage.removeItem('refrigerator_session_id');
+                sessionId = generateUUID();
+                localStorage.setItem('refrigerator_session_id', sessionId);
+                
+                // Clear UI
+                messagesDiv.innerHTML = '<div class="message assistant">Ola! Sou o assistente de manuais. Como posso te apoiar com sua geladeira hoje?</div>';
+                typingIndicator.classList.add('hidden');
+                
+                // Join new room
+                socket.emit('join', { session_id: sessionId });
+                console.log("Chat cleared. New session started:", sessionId);
+            }
+        }
+
+        document.getElementById('clearBtn').addEventListener('click', clearChat);
         document.getElementById('sendBtn').addEventListener('click', sendMessage);
         document.getElementById('userInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
